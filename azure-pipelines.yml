@@ -1,13 +1,95 @@
-jobs:
-- job: Job_1
-  displayName: Agent job 1
-  pool:
-    vmImage: windows-latest
-  steps:
-  - checkout: self
+# This pipeline takes in a SAS Url for the coverage container created in the OneFuzz Windows Integration Pipeline and parses it to get cobertura xml and associated OS source files to produce a ReportGenerator code coverage report.
+
+# Known issues with Publish Code Coverage task: If the file is greater than 7MB, you have to download the published artifacts to properly see code coverage. This is likely to occur if you target/depend on many files.
+
+trigger: none
+
+pool:
+  vmImage: 'windows-latest'
+
+parameters:
+  - name: sasUrl
+    type: string
+    displayName: SAS URL
+  - name: branch
+    type: string
+    displayName: Branch
+  - name: jobID
+    type: string
+    displayName: OneFuzz Job ID
+  - name: buildDate
+    type: string
+    displayName: Build Date
+
+variables:
+  - name: debug-flag
+    value: $false
+  - name: coverage-file
+    value: cobertura-coverage.xml
+  - name: job-ID 
+    value: ${{ parameters.jobID }}
+  - name: build-date 
+    value: ${{ parameters.buildDate }}
+  - name: branch
+    value: ${{ parameters.branch }}
+  - name: sas-url
+    value: ${{ parameters.sasUrl }}
+
+steps:
+  - checkout: none
+  - powershell: |
+      $branch = "official/$(branch)"
+      Write-Host "Job ID: $(job-ID), Build Date: $(build-date), Branch: $branch"
+      $SASUrl = [System.Uri]::new("$(sas-url)")
+      azcopy cp $SASUrl.AbsoluteUri ./ --recursive
+      $ContainerName = $SASURL.LocalPath.Split("/")[1]
+      Write-Host "##vso[task.setvariable variable=container-name;]$ContainerName"
+      cd $ContainerName
+      $size = ((Get-Item .\$(coverage-file)).length)
+      if ($size -eq 0) {
+        Write-Host "Cobertura coverage XML is empty."
+        exit 1
+      }
+      $files = Select-Xml -Path .\$(coverage-file) -XPath '/coverage/packages/package/classes/class' | ForEach-Object { $_.Node.filename }
+      $filescount = $files.count
+      $OSDevOpsPAT = $env:SYSTEM_ACCESSTOKEN
+      $AuthenticationHeader = @{Authorization = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$($OSDevOpsPAT)"))}
+      $UriOrganizationProject = "https://dev.azure.com/Microsoft/OS/"
+      $UriGetItem = $UriOrganizationProject + "_apis/git/repositories/os.2020/items?"
+      $catchcounter = 0
+      ForEach ($file in $files) {
+        Try {
+          $UriGetItemWithParameters = $UriGetItem + "path=$file&includeContent=true&download=true&versionType=Branch&version=$branch&api-version=5.1"
+          Invoke-RestMethod -Uri $UriGetItemWithParameters -Method get -Headers $AuthenticationHeader | Out-File $file.Split("\")[-1]
+        }
+        Catch {
+          $catchcounter++;
+          if ($(debug-flag)) {
+            Write-Host "An error occured when getting source file. Most likely paramters incorrectly submitted or file not a part of os.2020 repo and/or this branch. File (if paramters correctly submitted), $file."
+          }
+        }
+        if ($catchcounter -eq $filescount) {
+          Write-Host "Did not get any source files. Please check that your parameters are correctly formatted and/or that files exist in os.2020 repo."
+          exit 1
+        }
+      }
+    displayName: PowerShell script to get coverage and source(s) file
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   - task: PublishCodeCoverageResults@1
-    displayName: Publish code coverage from cobertura
     inputs:
-      codeCoverageTool: Cobertura
-      summaryFileLocation: $(System.DefaultWorkingDirectory)\coverage.cobertura.xml
-...
+      codeCoverageTool: 'Cobertura'
+      summaryFileLocation: '.\$(container-name)\$(coverage-file)'
+      pathToSources: '$(container-name)'
+    displayName: Built in ADO Task that uses ReportGenerator
+  - powershell: |
+      cd D:\a\_temp\cchtml
+      $files = Get-ChildItem "D:\a\_temp\cchtml"
+      ForEach ($file in $files) {
+        $size = ((Get-Item $file).length/1MB)
+        Write-Host $size
+        if ($size -gt 7) {
+          Write-Host "Code coverage artifacts > 7MB, you will have to view artifacts by downloading them from published artifacts section"
+        }
+      }
+    displayName: Check artifact size
