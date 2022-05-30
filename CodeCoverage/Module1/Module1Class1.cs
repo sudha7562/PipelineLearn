@@ -24,6 +24,10 @@ namespace Module1
             else if(y ==2) {
                 return x;
             }
+            else if(z==99)
+            {
+                return 1;
+            }
             else {
                 return 1;
             }
