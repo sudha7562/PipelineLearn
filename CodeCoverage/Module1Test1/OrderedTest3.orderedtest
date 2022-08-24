@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<OrderedTest name="OrderedTest3" storage="c:\users\bhavyakolli\documents\visual studio 2015\projects\unittestproject151\unittestproject151\orderedtest3.orderedtest" id="8164cc81-e1e7-4485-a9c9-32cd5024bd88" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <TestLinks>
+    <TestLink id="73d52d8b-3ebc-d54a-6d15-0db2d137f0a3" name="TestMethod3" storage="bin\debug\unittestproject151.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  </TestLinks>
+</OrderedTest>
