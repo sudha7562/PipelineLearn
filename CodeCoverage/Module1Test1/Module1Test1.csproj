@@ -51,7 +51,6 @@
   <ItemGroup>
     <Compile Include="Module1Test2UnitTest1.cs" />
     <Compile Include="Module1Test1UnitTest1.cs" />
-    <Compile Include="Myplaylist.playlist" />
     <Compile Include="UnitTest1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
