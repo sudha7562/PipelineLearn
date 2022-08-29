@@ -10,8 +10,14 @@ namespace UnitTestProject151
         public static bool Test2Called=false;
         public static bool Test3Called=false;
 
-     
-        
+        [TestMethod]
+        public void TestMethod1()
+        {
+            Test1Called = true;
+
+            Assert.IsFalse(Test2Called);
+            Assert.IsFalse(Test3Called);
+        }
         [TestMethod]
         public void TestMethod2()
         {
@@ -20,14 +26,7 @@ namespace UnitTestProject151
             Assert.IsTrue(Test1Called);
             Assert.IsFalse(Test3Called);
         }
-         [TestMethod]
-        public void TestMethod1()
-        {
-            Test1Called = true;
-
-            Assert.IsFalse(Test2Called);
-            Assert.IsFalse(Test3Called);
-        }
+      
 
         [TestMethod]
         public void TestMethod3()
